@@ -1,9 +1,14 @@
 package com.example.smartpantrymanager;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.widget.ArrayAdapter;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -41,18 +46,18 @@ public class RecipeActivity extends AppCompatActivity {
      * the 15+ pre-defined recipes to find strict matches the user can currently cook.
      */
     private void matchRecipesWithPantry() {
-        // 1. Fetch user's active inventory from SQLite database
+        // 1. Fetch user's active inventory from SQLite database[cite: 3, 5]
         List<PantryItem> pantryItems = databaseHelper.getAllPantryItems();
         List<String> pantryItemNames = new ArrayList<>();
         for (PantryItem item : pantryItems) {
             pantryItemNames.add(item.getName().toLowerCase().trim());
         }
 
-        // 2. Load the 15+ pre-seeded recipes from the repository
+        // 2. Load the pre-seeded recipes from the repository[cite: 4]
         List<Recipe> allRecipes = RecipeRepository.getAllRecipes();
 
         // 3. Strict-matching algorithm:
-        // A recipe is included ONLY IF every required ingredient is present in the pantry.
+        // A recipe is included ONLY IF every required ingredient is present in the pantry[cite: 5].
         List<Recipe> matchedRecipes = new ArrayList<>();
         for (Recipe recipe : allRecipes) {
             boolean hasAllIngredients = true;
@@ -67,45 +72,72 @@ public class RecipeActivity extends AppCompatActivity {
             }
         }
 
-        // 4. Prepare display list for UI feedback
-        List<String> displayList = new ArrayList<>();
+        // 4. Handle UI feedback if no recipes match[cite: 5]
         if (matchedRecipes.isEmpty()) {
-            displayList.add("No recipes match your pantry yet. Add items like 'eggs', 'milk', and 'butter'!");
-            Toast.makeText(this, "No matching recipes found[cite: 5].", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "No matching recipes found[cite: 5]. Add more ingredients!", Toast.LENGTH_LONG).show();
         } else {
-            for (Recipe r : matchedRecipes) {
-                displayList.add("🍳 " + r.getName() + " (All ingredients available!)");
-            }
             Toast.makeText(this, "Found " + matchedRecipes.size() + " matching recipe(s)[cite: 5]!", Toast.LENGTH_SHORT).show();
         }
 
-        // Bind to adapter
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, displayList);
-        recyclerViewRecipes.setAdapter(new RecyclerViewAdapterWrapper(displayList));
+        // Bind matched recipes to the RecyclerView adapter with click handling
+        RecipeAdapter recipeAdapter = new RecipeAdapter(matchedRecipes, recipe -> {
+            // Use Intent to pass recipe details to RecipeDetailActivity[cite: 6]
+            Intent intent = new Intent(RecipeActivity.this, RecipeDetailActivity.class);
+            intent.putExtra("RECIPE_NAME", recipe.getName());
+            intent.putExtra("RECIPE_INGREDIENTS", String.join(", ", recipe.getIngredients()));
+            intent.putExtra("RECIPE_METHOD", recipe.getPreparationSteps());
+            startActivity(intent);
+        });
+
+        recyclerViewRecipes.setAdapter(recipeAdapter);
     }
 
-    // Simple inner adapter wrapper for string display in RecyclerView
-    private static class RecyclerViewAdapterWrapper extends RecyclerView.Adapter<RecyclerViewAdapterWrapper.ViewHolder> {
-        private final List<String> items;
-        public RecyclerViewAdapterWrapper(List<String> items) { this.items = items; }
+    /**
+     * Custom Adapter for displaying matched recipes in the RecyclerView.
+     */
+    private static class RecipeAdapter extends RecyclerView.Adapter<RecipeAdapter.RecipeViewHolder> {
+        private final List<Recipe> recipeList;
+        private final OnRecipeClickListener listener;
 
+        public interface OnRecipeClickListener {
+            void onRecipeClick(Recipe recipe);
+        }
+
+        public RecipeAdapter(List<Recipe> recipeList, OnRecipeClickListener listener) {
+            this.recipeList = recipeList;
+            this.listener = listener;
+        }
+
+        @NonNull
         @Override
-        public ViewHolder onCreateViewHolder(android.view.ViewGroup parent, int viewType) {
-            android.view.View view = android.view.LayoutInflater.from(parent.getContext())
-                    .inflate(android.R.layout.simple_list_item_1, parent, false);
-            return new ViewHolder(view);
+        public RecipeViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(android.R.layout.simple_list_item_2, parent, false);
+            return new RecipeViewHolder(view);
         }
 
         @Override
-        public void onBindViewHolder(ViewHolder holder, int position) {
-            ((android.widget.TextView) holder.itemView).setText(items.get(position));
+        public void onBindViewHolder(@NonNull RecipeViewHolder holder, int position) {
+            Recipe recipe = recipeList.get(position);
+            holder.text1.setText("🍳 " + recipe.getName());
+            holder.text2.setText("Ingredients: " + String.join(", ", recipe.getIngredients()));
+
+            holder.itemView.setOnClickListener(v -> listener.onRecipeClick(recipe));
         }
 
         @Override
-        public int getItemCount() { return items.size(); }
+        public int getItemCount() {
+            return recipeList.size();
+        }
 
-        static class ViewHolder extends RecyclerView.ViewHolder {
-            public ViewHolder(android.view.View itemView) { super(itemView); }
+        static class RecipeViewHolder extends RecyclerView.ViewHolder {
+            TextView text1, text2;
+
+            public RecipeViewHolder(@NonNull View itemView) {
+                super(itemView);
+                text1 = itemView.findViewById(android.R.id.text1);
+                text2 = itemView.findViewById(android.R.id.text2);
+            }
         }
     }
 }
