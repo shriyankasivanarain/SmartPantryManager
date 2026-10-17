@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Smart Pantry Manager</string>
+    <string name="title_dashboard">Smart Pantry Manager</string>
+    <string name="btn_find_recipes">Find Recipes You Can Cook</string>
+    <string name="btn_add_item">Add Pantry Item</string>
+    <string name="header_pantry_items">Your Current Pantry Items:</string>
 </resources>
