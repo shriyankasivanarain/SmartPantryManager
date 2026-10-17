@@ -1,6 +1,7 @@
 package com.example.smartpantrymanager;
 
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.widget.Button;
@@ -47,10 +48,11 @@ public class MainActivity extends AppCompatActivity {
         // Listener to trigger the Add Item dialog popup
         btnAddItem.setOnClickListener(v -> showAddItemDialog());
 
-        // Placeholder listener for recipe matching activity
-        btnViewRecipes.setOnClickListener(v ->
-                Toast.makeText(MainActivity.this, "Recipe Matching screen coming up next!", Toast.LENGTH_SHORT).show()
-        );
+        // Listener to launch the Suggested Recipes screen using an Intent[cite: 6]
+        btnViewRecipes.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, RecipeActivity.class);
+            startActivity(intent);
+        });
     }
 
     /**
