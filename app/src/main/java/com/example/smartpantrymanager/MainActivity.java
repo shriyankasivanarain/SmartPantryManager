@@ -1,7 +1,11 @@
 package com.example.smartpantrymanager;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,65 +14,116 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
+/**
+ * Main Activity class representing the dashboard for the Smart Pantry Manager.
+ * Handles displaying pantry inventory, adding new items via a Dialog, and deleting items.
+ */
 public class MainActivity extends AppCompatActivity {
 
-    // Declare UI components and database helper references
+    // UI elements and Database reference variables
     private DatabaseHelper databaseHelper;
     private RecyclerView recyclerViewPantry;
     private PantryAdapter pantryAdapter;
-    private Button btnAddItem, btnViewRecipes;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Initialize the SQLite Database Helper instance
+        // Initialize SQLite Database Helper instance
         databaseHelper = new DatabaseHelper(this);
 
-        // Bind layout views from activity_main.xml to Java variables
+        // Bind layout view components
         recyclerViewPantry = findViewById(R.id.recyclerViewPantry);
-        btnAddItem = findViewById(R.id.btnAddItem);
-        btnViewRecipes = findViewById(R.id.btnViewRecipes);
+        Button btnAddItem = findViewById(R.id.btnAddItem);
+        Button btnViewRecipes = findViewById(R.id.btnViewRecipes);
 
-        // Configure RecyclerView to display items linearly (vertical list)
+        // Set up vertical layout for the RecyclerView list
         recyclerViewPantry.setLayoutManager(new LinearLayoutManager(this));
 
-        // Load current pantry items from the database into the UI list
+        // Load existing pantry items from SQLite database on app start
         loadPantryData();
 
-        // Handle click events for adding a new pantry item
-        btnAddItem.setOnClickListener(v -> {
-            // Placeholder: Will be linked to an Add Item screen or dialog shortly
-            Toast.makeText(MainActivity.this, "Add Item feature coming up next!", Toast.LENGTH_SHORT).show();
-        });
+        // Listener to trigger the Add Item dialog popup
+        btnAddItem.setOnClickListener(v -> showAddItemDialog());
 
-        // Handle click events for viewing matching recipes based on pantry inventory
-        btnViewRecipes.setOnClickListener(v -> {
-            // Placeholder: Will be linked to the Recipe Matching screen shortly
-            Toast.makeText(MainActivity.this, "Recipe Matching feature coming up next!", Toast.LENGTH_SHORT).show();
-        });
+        // Placeholder listener for recipe matching activity
+        btnViewRecipes.setOnClickListener(v ->
+                Toast.makeText(MainActivity.this, "Recipe Matching screen coming up next!", Toast.LENGTH_SHORT).show()
+        );
     }
 
     /**
-     * Helper method to fetch all pantry items from the local SQLite database
-     * and bind or update them within the RecyclerView adapter.
+     * Builds and displays an AlertDialog containing input fields for adding
+     * a new PantryItem into the SQLite database.
+     */
+    private void showAddItemDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add New Pantry Item");
+
+        // Construct programmatically created layout for user input
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.setPadding(50, 40, 50, 10);
+
+        final EditText inputName = new EditText(this);
+        inputName.setHint("Item Name (e.g., Eggs, Milk)");
+        container.addView(inputName);
+
+        final EditText inputQuantity = new EditText(this);
+        inputQuantity.setHint("Quantity (e.g., 2, 5)");
+        inputQuantity.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
+        container.addView(inputQuantity);
+
+        builder.setView(container);
+
+        // Set up Save button action
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String name = inputName.getText().toString().trim();
+            String quantityStr = inputQuantity.getText().toString().trim();
+
+            // Validate inputs
+            if (TextUtils.isEmpty(name) || TextUtils.isEmpty(quantityStr)) {
+                Toast.makeText(MainActivity.this, "Please fill in all fields", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int quantity = Integer.parseInt(quantityStr);
+
+            // Insert new item into SQLite database using all 4 required arguments
+            boolean isAdded = databaseHelper.addPantryItem(name, quantity, "General", "");
+
+            if (isAdded) {
+                Toast.makeText(MainActivity.this, "Item added successfully!", Toast.LENGTH_SHORT).show();
+                loadPantryData(); // Refresh list display
+            } else {
+                Toast.makeText(MainActivity.this, "Error adding item to database", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // Set up Cancel button action
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+
+        builder.show();
+    }
+
+    /**
+     * Fetches all pantry items from SQLite and binds or updates them in the RecyclerView.
      */
     private void loadPantryData() {
         List<PantryItem> pantryItemList = databaseHelper.getAllPantryItems();
 
         if (pantryAdapter == null) {
-            // Initialize the custom adapter with our list and handle item deletion logic
+            // Initialize custom adapter with item list and delete callback handler
             pantryAdapter = new PantryAdapter(pantryItemList, itemId -> {
-                // Delete item from SQLite database using its unique ID
+                // Delete item from SQLite database by unique ID
                 databaseHelper.deletePantryItem(itemId);
-                // Refresh the list data displayed on screen
-                loadPantryData();
-                Toast.makeText(MainActivity.this, "Item deleted successfully", Toast.LENGTH_SHORT).show();
+                loadPantryData(); // Refresh UI after deletion
+                Toast.makeText(MainActivity.this, "Item deleted", Toast.LENGTH_SHORT).show();
             });
             recyclerViewPantry.setAdapter(pantryAdapter);
         } else {
-            // Update existing adapter dataset dynamically
+            // Dynamically refresh adapter dataset
             pantryAdapter.updateData(pantryItemList);
         }
     }
@@ -76,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // Refresh pantry data automatically whenever the activity resumes/focuses
+        // Auto-refresh list when returning to this activity
         loadPantryData();
     }
 }
