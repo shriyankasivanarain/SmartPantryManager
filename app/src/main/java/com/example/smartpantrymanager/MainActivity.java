@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerViewPantry = findViewById(R.id.recyclerViewPantry);
         Button btnAddItem = findViewById(R.id.btnAddItem);
         Button btnViewRecipes = findViewById(R.id.btnViewRecipes);
+        Button btnSettings = findViewById(R.id.btnSettings);
 
         // Set up vertical layout for the RecyclerView list
         recyclerViewPantry.setLayoutManager(new LinearLayoutManager(this));
@@ -48,9 +49,15 @@ public class MainActivity extends AppCompatActivity {
         // Listener to trigger the Add Item dialog popup
         btnAddItem.setOnClickListener(v -> showAddItemDialog());
 
-        // Listener to launch the Suggested Recipes screen using an Intent[cite: 6]
+        // Listener to launch the Suggested Recipes screen using an Intent
         btnViewRecipes.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, RecipeActivity.class);
+            startActivity(intent);
+        });
+
+        // Listener to launch the Settings screen using an Intent
+        btnSettings.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
             startActivity(intent);
         });
     }
